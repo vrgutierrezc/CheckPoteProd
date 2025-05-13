@@ -1,8 +1,9 @@
+# .github/workflows/daily_summary.yml
 name: Daily Site-Check Heartbeat
 
 on:
   schedule:
-    # Run daily at 4:30 pm Bogotá (UTC–5 → 21:30 UTC)
+    # 4:30 PM Bogotá → 21:30 UTC
     - cron: '30 21 * * *'
   workflow_dispatch:
 
@@ -11,7 +12,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Send daily heartbeat
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Run paragraph check  
+        id: check  
+        run: python check_site.py  
+        continue-on-error: true
+
+      - name: Send daily heartbeat if no change  
+        if: steps.check.conclusion == 'success'  
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: ${{ secrets.SMTP_SERVER }}
@@ -22,8 +40,9 @@ jobs:
           body:           |
             Hola,
 
-            Este es el correo diario de confirmación: no se han detectado cambios
-            en el párrafo monitorizado del sitio del Ministerio de Minas y Energía.
+            Este es tu correo diario de confirmación: no se han detectado cambios
+            en el párrafo monitorizado del sitio del Ministerio de Minas y Energía 
+            en las últimas 24 horas.
 
             Saludos.
           from:           ${{ secrets.FROM_EMAIL }}
