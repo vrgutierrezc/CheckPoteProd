@@ -1,45 +1,92 @@
 import requests
 from bs4 import BeautifulSoup
+import hashlib
 import difflib
-import re
+from pathlib import Path
 
-# 1) Fetch the page
+# Configuración
 URL = "https://www.minenergia.gov.co/es/misional/hidrocarburos/funcionamiento-del-sector/gas-natural/"
-resp = requests.get(URL)
-resp.raise_for_status()
-soup = BeautifulSoup(resp.text, "html.parser")
+SELECTOR = 'p[data-block-key="ylaun"]'
 
-# 2) Extract and normalize the <p data-block-key="ylaun">
-p = soup.select_one('p[data-block-key="ylaun"]')
-if not p:
-    raise RuntimeError("Element not found")
-fetched = p.get_text(separator=" ", strip=True)
-# collapse all whitespace to single spaces
-fetched = re.sub(r"\s+", " ", fetched)
+import requests
+from bs4 import BeautifulSoup
+import hashlib
+import difflib
+from pathlib import Path
 
-# 3) Your expected text (also normalized)
-expected = (
-    "El Ministerio de Minas y Energía informa qué, "
-    "el cronograma para el reporte de la declaración de producción de gas natural "
-    "para el periodo 2024-2033, podrá encontrarlo en los siguientes enlaces."
-)
-expected = re.sub(r"\s+", " ", expected.strip())
+# Configuración
+URL = "https://www.minenergia.gov.co/es/misional/hidrocarburos/funcionamiento-del-sector/gas-natural/"
+SELECTOR = 'p[data-block-key="ylaun"]'
 
-# 4) Compare and print a diff if they differ
-if fetched != expected:
-    print("❗ Text mismatch detected:")
-    diff = difflib.unified_diff(
-        expected.split(),
-        fetched.split(),
-        fromfile="expected",
-        tofile="fetched",
-        lineterm=""
-    )
-    print(" ", " ".join(expected.split()), sep="\n")
-    print(" vs ")
-    print(" ", " ".join(fetched.split()), sep="\n")
-    print("\nDetailed diff:")
-    for line in diff:
-        print(line)
+def fetch_element_html():
+    """Descarga la página y devuelve el HTML del contenedor deseado."""
+    resp = requests.get(URL)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
+    p = soup.select_one(SELECTOR)
+    if not p:
+        raise ValueError("Elemento con selector {} no encontrado".format(SELECTOR))
+    return p.find_parent("div").prettify()
+
+# Rutas locales
+prev_file = Path("prev_content.html")
+hash_file = Path("prev_hash.txt")
+
+# Obtener contenido y hash actuales
+current_html = fetch_element_html()
+current_hash = hashlib.sha256(current_html.encode("utf-8")).hexdigest()
+
+# Leer hash previo si existe
+prev_hash = hash_file.read_text().strip() if hash_file.exists() else None
+
+# Comparar y mostrar diff si cambió
+if prev_hash != current_hash:
+    print("Cambio detectado en el contenido.")
+    if prev_file.exists():
+        old_html = prev_file.read_text(encoding="utf-8")
+        diff = difflib.unified_diff(
+            old_html.splitlines(),
+            current_html.splitlines(),
+            fromfile="prev_content.html",
+            tofile="current_content.html",
+            lineterm=""
+        )
+        for line in diff:
+            print(line)
+    # Guardar nueva versión
+    prev_file.write_text(current_html, encoding="utf-8")
+    hash_file.write_text(current_hash)
 else:
-    print("✅ Text matches exactly!")
+    print("No hay cambios desde la última ejecución.")
+
+
+# Rutas locales
+prev_file = Path("prev_content.html")
+hash_file = Path("prev_hash.txt")
+
+# Obtener contenido y hash actuales
+current_html = fetch_element_html()
+current_hash = hashlib.sha256(current_html.encode("utf-8")).hexdigest()
+
+# Leer hash previo si existe
+prev_hash = hash_file.read_text().strip() if hash_file.exists() else None
+
+# Comparar y mostrar diff si cambió
+if prev_hash != current_hash:
+    print("Cambio detectado en el contenido.")
+    if prev_file.exists():
+        old_html = prev_file.read_text(encoding="utf-8")
+        diff = difflib.unified_diff(
+            old_html.splitlines(),
+            current_html.splitlines(),
+            fromfile="prev_content.html",
+            tofile="current_content.html",
+            lineterm=""
+        )
+        for line in diff:
+            print(line)
+    # Guardar nueva versión
+    prev_file.write_text(current_html, encoding="utf-8")
+    hash_file.write_text(current_hash)
+else:
+    print("No hay cambios desde la última ejecución.")
