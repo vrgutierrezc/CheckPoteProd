@@ -46,6 +46,6 @@ jobs:
 
             Saludos.
           from:           ${{ secrets.FROM_EMAIL }}
-          to:             ${{ secrets.NOTIFY_EMAIL_EMAIL }}
+          to:             ${{ secrets.NOTIFY_EMAIL}}
           bcc:            ${{ secrets.BCC_EMAILS }}
 
