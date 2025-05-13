@@ -1,92 +1,62 @@
+#!/usr/bin/env python3
 import requests
 from bs4 import BeautifulSoup
-import hashlib
 import difflib
-from pathlib import Path
+import sys
+import re
 
 # Configuración
-URL = "https://www.minenergia.gov.co/es/misional/hidrocarburos/funcionamiento-del-sector/gas-natural/"
-SELECTOR = 'p[data-block-key="ylaun"]'
+URL         = "https://www.minenergia.gov.co/es/misional/hidrocarburos/funcionamiento-del-sector/gas-natural/"
+DIV_SELECTOR = "div#collapse0"
+P_SELECTOR   = 'p[data-block-key="ylaun"]'
 
-import requests
-from bs4 import BeautifulSoup
-import hashlib
-import difflib
-from pathlib import Path
+EXPECTED_TEXT = (
+    "El Ministerio de Minas y Energía informa qué, el cronograma para el reporte de la "
+    "declaración de producción de gas natural para el periodo 2024-2033, podrá encontrarlo "
+    "en los siguientes enlaces."
+)
 
-# Configuración
-URL = "https://www.minenergia.gov.co/es/misional/hidrocarburos/funcionamiento-del-sector/gas-natural/"
-SELECTOR = 'p[data-block-key="ylaun"]'
+def normalize(txt: str) -> str:
+    # Collapse all whitespace to single spaces
+    return re.sub(r"\s+", " ", txt.strip())
 
-def fetch_element_html():
-    """Descarga la página y devuelve el HTML del contenedor deseado."""
+def main():
+    # 1) Fetch and parse
     resp = requests.get(URL)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
-    p = soup.select_one(SELECTOR)
+
+    # 2) Locate the container and paragraph
+    div = soup.select_one(DIV_SELECTOR)
+    if not div:
+        print(f"ERROR: No se encontró el {DIV_SELECTOR}", file=sys.stderr)
+        sys.exit(2)
+
+    p = div.select_one(P_SELECTOR)
     if not p:
-        raise ValueError("Elemento con selector {} no encontrado".format(SELECTOR))
-    return p.find_parent("div").prettify()
+        print(f"ERROR: No se encontró el {P_SELECTOR}", file=sys.stderr)
+        sys.exit(2)
 
-# Rutas locales
-prev_file = Path("prev_content.html")
-hash_file = Path("prev_hash.txt")
+    # 3) Normalize both expected and current
+    current = normalize(p.get_text(separator=" ", strip=True))
+    expected = normalize(EXPECTED_TEXT)
 
-# Obtener contenido y hash actuales
-current_html = fetch_element_html()
-current_hash = hashlib.sha256(current_html.encode("utf-8")).hexdigest()
-
-# Leer hash previo si existe
-prev_hash = hash_file.read_text().strip() if hash_file.exists() else None
-
-# Comparar y mostrar diff si cambió
-if prev_hash != current_hash:
-    print("Cambio detectado en el contenido.")
-    if prev_file.exists():
-        old_html = prev_file.read_text(encoding="utf-8")
+    # 4) Compare
+    if current != expected:
+        print("⚠️ ¡El contenido ha cambiado! Aquí está el diff:\n")
         diff = difflib.unified_diff(
-            old_html.splitlines(),
-            current_html.splitlines(),
-            fromfile="prev_content.html",
-            tofile="current_content.html",
+            expected.split(),
+            current.split(),
+            fromfile="expected",
+            tofile="current",
             lineterm=""
         )
         for line in diff:
             print(line)
-    # Guardar nueva versión
-    prev_file.write_text(current_html, encoding="utf-8")
-    hash_file.write_text(current_hash)
-else:
-    print("No hay cambios desde la última ejecución.")
+        sys.exit(1)
 
+    print("✅ El párrafo coincide exactamente.")
+    sys.exit(0)
 
-# Rutas locales
-prev_file = Path("prev_content.html")
-hash_file = Path("prev_hash.txt")
-
-# Obtener contenido y hash actuales
-current_html = fetch_element_html()
-current_hash = hashlib.sha256(current_html.encode("utf-8")).hexdigest()
-
-# Leer hash previo si existe
-prev_hash = hash_file.read_text().strip() if hash_file.exists() else None
-
-# Comparar y mostrar diff si cambió
-if prev_hash != current_hash:
-    print("Cambio detectado en el contenido.")
-    if prev_file.exists():
-        old_html = prev_file.read_text(encoding="utf-8")
-        diff = difflib.unified_diff(
-            old_html.splitlines(),
-            current_html.splitlines(),
-            fromfile="prev_content.html",
-            tofile="current_content.html",
-            lineterm=""
-        )
-        for line in diff:
-            print(line)
-    # Guardar nueva versión
-    prev_file.write_text(current_html, encoding="utf-8")
-    hash_file.write_text(current_hash)
-else:
-    print("No hay cambios desde la última ejecución.")
+if __name__ == "__main__":
+    main()
