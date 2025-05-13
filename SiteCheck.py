@@ -1,49 +1,45 @@
-# Archivo: check_site.py
 import requests
 from bs4 import BeautifulSoup
 import difflib
-from pathlib import Path
-import sys
+import re
 
-# Configuración
+# 1) Fetch the page
 URL = "https://www.minenergia.gov.co/es/misional/hidrocarburos/funcionamiento-del-sector/gas-natural/"
-SELECTOR = 'p[data-block-key="ylaun"]'
-STATE_FILE = Path("prev_content.html")
+resp = requests.get(URL)
+resp.raise_for_status()
+soup = BeautifulSoup(resp.text, "html.parser")
 
-def fetch_container_html():
-    resp = requests.get(URL)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
-    elem = soup.select_one(SELECTOR)
-    if not elem:
-        print(f"ERROR: elemento {SELECTOR} no encontrado", file=sys.stderr)
-        sys.exit(2)
-    return elem.find_parent("div").prettify()
+# 2) Extract and normalize the <p data-block-key="ylaun">
+p = soup.select_one('p[data-block-key="ylaun"]')
+if not p:
+    raise RuntimeError("Element not found")
+fetched = p.get_text(separator=" ", strip=True)
+# collapse all whitespace to single spaces
+fetched = re.sub(r"\s+", " ", fetched)
 
-def main():
-    current = fetch_container_html()
-    if STATE_FILE.exists():
-        old = STATE_FILE.read_text(encoding="utf-8")
-    else:
-        old = ""
-    if old != current:
-        # Mostrar diff
-        diff = difflib.unified_diff(
-            old.splitlines(),
-            current.splitlines(),
-            fromfile="prev_content.html",
-            tofile="current",
-            lineterm=""
-        )
-        print("⚠️ Contenido cambiado:")
-        for line in diff:
-            print(line)
-        # Guardar nuevo estado
-        STATE_FILE.write_text(current, encoding="utf-8")
-        sys.exit(1)
-    else:
-        print("✅ Sin cambios.")
-        sys.exit(0)
+# 3) Your expected text (also normalized)
+expected = (
+    "El Ministerio de Minas y Energía informa qué, "
+    "el cronograma para el reporte de la declaración de producción de gas natural "
+    "para el periodo 2024-2033, podrá encontrarlo en los siguientes enlaces."
+)
+expected = re.sub(r"\s+", " ", expected.strip())
 
-if __name__ == "__main__":
-    main()
+# 4) Compare and print a diff if they differ
+if fetched != expected:
+    print("❗ Text mismatch detected:")
+    diff = difflib.unified_diff(
+        expected.split(),
+        fetched.split(),
+        fromfile="expected",
+        tofile="fetched",
+        lineterm=""
+    )
+    print(" ", " ".join(expected.split()), sep="\n")
+    print(" vs ")
+    print(" ", " ".join(fetched.split()), sep="\n")
+    print("\nDetailed diff:")
+    for line in diff:
+        print(line)
+else:
+    print("✅ Text matches exactly!")
