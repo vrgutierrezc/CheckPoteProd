@@ -1,34 +1,32 @@
-# .github/workflows/daily_summary.yml
-name: Daily Site-Check Summary
+name: Daily Site-Check Heartbeat
 
 on:
   schedule:
-    # Run every day at 4:30 PM Bogotá time (UTC-5) → 21:30 UTC
+    # Run daily at 4:30 pm Bogotá (UTC–5 → 21:30 UTC)
     - cron: '30 21 * * *'
-  workflow_dispatch:      # allow manual trigger
+  workflow_dispatch:
 
 jobs:
-  notify:
+  heartbeat:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Send daily heartbeat email
+      - name: Send daily heartbeat
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: ${{ secrets.SMTP_SERVER }}
           server_port:    ${{ secrets.SMTP_PORT }}
           username:       ${{ secrets.SMTP_USERNAME }}
           password:       ${{ secrets.SMTP_PASSWORD }}
-          subject:        "🕒 Daily Site Check – No changes"
+          subject:        "🕒 Daily Heartbeat – No changes"
           body:           |
             Hola,
 
-            Este es tu correo diario de confirmación: no se detectaron cambios en la sección
-            monitorizada del sitio del Ministerio de Minas y Energía en las últimas 24 horas.
-
-            Si hubiera habido cambios, ya habrías recibido una alerta.
+            Este es el correo diario de confirmación: no se han detectado cambios
+            en el párrafo monitorizado del sitio del Ministerio de Minas y Energía.
 
             Saludos.
+          from:           ${{ secrets.FROM_EMAIL }}
           to:             ${{ secrets.NOTIFY_EMAIL_EMAIL }}
           bcc:            ${{ secrets.BCC_EMAILS }}
           from:           ${{ secrets.FROM_EMAIL }}

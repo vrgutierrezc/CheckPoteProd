@@ -1,16 +1,18 @@
-name: Hourly Site Check
+name: Hourly Paragraph Check
 
 on:
   schedule:
-    - cron: '0 * * * *'    # every hour at minute 0
-  workflow_dispatch:      # manual trigger
+    # Runs at minute 0 of UTC hours 0–1 and 10–23
+    # → corresponds to local Bogotá hours 19:00–20:00 and 05:00–18:00 (i.e. 5 AM–8 PM)
+    - cron: '0 0-1,10-23 * * *'
+  workflow_dispatch:
 
 jobs:
   check:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Python
@@ -21,47 +23,23 @@ jobs:
       - name: Install dependencies
         run: pip install requests beautifulsoup4
 
-      - name: Run site-check script
+      - name: Run paragraph check
         id: check
-        run: |
-          if python check_site.py; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-          else
-            echo "changed=true"  >> $GITHUB_OUTPUT
-          fi
+        run: python check_site.py
         continue-on-error: true
 
-      - name: Verify snapshot files exist
-        run: |
-          echo "=== Workspace Listing ==="
-          ls -1
-          echo "prev_content.txt exists? " $( [ -f prev_content.txt ] && echo "YES" || echo "NO" )
-          echo "prev_hash.txt   exists? " $( [ -f prev_hash.txt   ] && echo "YES" || echo "NO" )
-
-      - name: Commit updated snapshot
-        if: steps.check.outputs.changed == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Only add the .txt files, since that's what our script writes
-          if [ -f prev_content.txt ]; then
-            git add prev_content.txt prev_hash.txt
-            git commit -m "🔄 Update site snapshot"
-            git push
-          else
-            echo "No prev_content.txt to commit"
-          fi
-
-      - name: Send email notification
-        if: steps.check.outputs.changed == 'true'
+      - name: Notify on change
+        if: steps.check.outcome == 'failure'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: ${{ secrets.SMTP_SERVER }}
           server_port:    ${{ secrets.SMTP_PORT }}
           username:       ${{ secrets.SMTP_USERNAME }}
           password:       ${{ secrets.SMTP_PASSWORD }}
-          subject:        "🔔 Site content changed"
-          body:           "The monitored section on https://www.minenergia.gov.co/es/misional/hidrocarburos/funcionamiento-del-sector/gas-natural/ has changed."
+          subject:        "🔔 MME Potential Production has changed"
+          body:           |
+            The monitored paragraph on https://www.minenergia.gov.co/es/misional/hidrocarburos/funcionamiento-del-sector/gas-natural/ has changed.
           to:             ${{ secrets.NOTIFY_EMAIL }}
           bcc:            ${{ secrets.BCC_EMAILS }}
           from:           ${{ secrets.FROM_EMAIL }}
+
