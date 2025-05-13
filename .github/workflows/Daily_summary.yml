@@ -30,4 +30,5 @@ jobs:
 
             Saludos.
           to:             ${{ secrets.NOTIFY_EMAIL_EMAIL }}
+          bcc:            ${{ secrets.BCC_EMAILS }}
           from:           ${{ secrets.FROM_EMAIL }}

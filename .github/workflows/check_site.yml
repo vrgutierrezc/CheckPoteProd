@@ -63,4 +63,5 @@ jobs:
           subject:        "🔔 Site content changed"
           body:           "The monitored section on https://www.minenergia.gov.co/es/misional/hidrocarburos/funcionamiento-del-sector/gas-natural/ has changed."
           to:             ${{ secrets.NOTIFY_EMAIL }}
+          bcc:            ${{ secrets.BCC_EMAILS }}
           from:           ${{ secrets.FROM_EMAIL }}
