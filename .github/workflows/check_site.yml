@@ -2,8 +2,8 @@ name: Hourly Site Check
 
 on:
   schedule:
-    - cron: '0 * * * *'    # cada hora, en el minuto 0
-  workflow_dispatch:      # permite ejecución manual
+    - cron: '0 * * * *'    # every hour at minute 0
+  workflow_dispatch:      # manual trigger support
 
 jobs:
   check:
@@ -31,13 +31,24 @@ jobs:
           fi
         continue-on-error: true
 
+      - name: Verify snapshot files exist
+        run: |
+          echo "=== ROOT DIRECTORY ==="
+          ls -1
+          echo
+          echo "=== WORKSPACE TREE ==="
+          ls -R .
+          echo
+          echo "prev_content.html exists? " $( [ -f prev_content.html ] && echo "YES" || echo "NO" )
+          echo "prev_hash.txt   exists? " $( [ -f prev_hash.txt   ] && echo "YES" || echo "NO" )
+
       - name: Commit updated snapshot
         if: steps.check.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if [ -f prev_content.html ]; then
-            git add prev_content.html
+            git add prev_content.html prev_hash.txt
             git commit -m "🔄 Update site snapshot"
             git push
           else
