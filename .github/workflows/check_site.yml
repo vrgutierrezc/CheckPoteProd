@@ -3,7 +3,7 @@ name: Hourly Site Check
 on:
   schedule:
     - cron: '0 * * * *'    # every hour at minute 0
-  workflow_dispatch:      # manual trigger support
+  workflow_dispatch:      # manual trigger
 
 jobs:
   check:
@@ -33,13 +33,9 @@ jobs:
 
       - name: Verify snapshot files exist
         run: |
-          echo "=== ROOT DIRECTORY ==="
+          echo "=== Workspace Listing ==="
           ls -1
-          echo
-          echo "=== WORKSPACE TREE ==="
-          ls -R .
-          echo
-          echo "prev_content.html exists? " $( [ -f prev_content.html ] && echo "YES" || echo "NO" )
+          echo "prev_content.txt exists? " $( [ -f prev_content.txt ] && echo "YES" || echo "NO" )
           echo "prev_hash.txt   exists? " $( [ -f prev_hash.txt   ] && echo "YES" || echo "NO" )
 
       - name: Commit updated snapshot
@@ -47,12 +43,13 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if [ -f prev_content.html ]; then
-            git add prev_content.html prev_hash.txt
+          # Only add the .txt files, since that's what our script writes
+          if [ -f prev_content.txt ]; then
+            git add prev_content.txt prev_hash.txt
             git commit -m "🔄 Update site snapshot"
             git push
           else
-            echo "No prev_content.html to commit"
+            echo "No prev_content.txt to commit"
           fi
 
       - name: Send email notification
@@ -64,6 +61,6 @@ jobs:
           username:       ${{ secrets.SMTP_USERNAME }}
           password:       ${{ secrets.SMTP_PASSWORD }}
           subject:        "🔔 Site content changed"
-          body:           "The monitored section on minenergia.gov.co has changed."
+          body:           "The monitored section on https://www.minenergia.gov.co/es/misional/hidrocarburos/funcionamiento-del-sector/gas-natural/ has changed."
           to:             ${{ secrets.NOTIFY_EMAIL }}
           from:           ${{ secrets.FROM_EMAIL }}
