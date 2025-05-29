@@ -26,6 +26,7 @@ jobs:
       - name: Run paragraph check
         id: check
         run: |
+          set +e
           python SiteCheck.py
           code=$?
           echo "Exit code: $code"
