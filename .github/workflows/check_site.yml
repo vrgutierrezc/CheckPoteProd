@@ -25,11 +25,13 @@ jobs:
 
       - name: Run paragraph check
         id: check
-        run: python SiteCheck.py
+        run: |
+          python SiteCheck.py
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
         continue-on-error: true
 
       - name: Notify on change
-        if: steps.check.conclusion == 'failure'
+        if: steps.check.outputs.exit_code == '1'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: ${{ secrets.SMTP_SERVER }}
