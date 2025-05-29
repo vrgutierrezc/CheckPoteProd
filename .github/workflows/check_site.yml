@@ -47,7 +47,7 @@ jobs:
           password:       ${{ secrets.SMTP_PASSWORD }}
           subject:        "🔔 MME Potential Production has changed"
           body:           |
-            The monitored paragraph on https://www.minenergia.gov.co/es/misional/hidrocarburos/funcionamiento-del-sector/gas-natural/ has changed.
+            A new Declaration has been published on https://www.minenergia.gov.co/es/misional/hidrocarburos/funcionamiento-del-sector/gas-natural/ .
           to:             ${{ secrets.NOTIFY_EMAIL }}
           bcc:            ${{ secrets.BCC_EMAILS }}
           from:           ${{ secrets.FROM_EMAIL }}
