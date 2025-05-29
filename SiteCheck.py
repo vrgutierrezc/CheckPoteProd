@@ -1,62 +1,35 @@
 #!/usr/bin/env python3
-import requests
 from bs4 import BeautifulSoup
-import difflib
-import sys
-import re
+import requests
 
-# Configuración
-URL         = "https://www.minenergia.gov.co/es/misional/hidrocarburos/funcionamiento-del-sector/gas-natural/"
-DIV_SELECTOR = "div#collapse0"
-P_SELECTOR   = 'p[data-block-key="ylaun"]'
+# 1. Fetch and parse the page
+URL = "https://www.minenergia.gov.co/es/misional/hidrocarburos/funcionamiento-del-sector/gas-natural/"
+resp = requests.get(URL)
+resp.raise_for_status()
+soup = BeautifulSoup(resp.text, "html.parser")
 
-EXPECTED_TEXT = (
-    "El Ministerio de Minas y Energía informa qué, el cronograma para el reporte de la "
-    "declaración de producción de gas natural para el periodo 2024-2033, podrá encontrarlo "
-    "en los siguientes enlaces."
-)
+# 2. Find the <p data-block-key="ylaun">
+p = soup.select_one('div#collapse0 p[data-block-key="ylaun"]')
+if not p:
+    print("ERROR: No se encontró el párrafo ylaun")
+    exit(2)
 
-def normalize(txt: str) -> str:
-    # Collapse all whitespace to single spaces
-    return re.sub(r"\s+", " ", txt.strip())
+# 3. Find the next <ul> sibling
+ul = p.find_next_sibling("ul")
+if not ul:
+    print("ERROR: No se encontró la lista ul después del párrafo ylaun")
+    exit(2)
 
-def main():
-    # 1) Fetch and parse
-    resp = requests.get(URL)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
+# 4. Count only direct <li> children (first level)
+li_count = len([li for li in ul.find_all("li", recursive=False)])
 
-    # 2) Locate the container and paragraph
-    div = soup.select_one(DIV_SELECTOR)
-    if not div:
-        print(f"ERROR: No se encontró el {DIV_SELECTOR}", file=sys.stderr)
-        sys.exit(2)
+print(f"La lista <ul> después de ylaun tiene {li_count} elemento(s) <li> de primer nivel.")
 
-    p = div.select_one(P_SELECTOR)
-    if not p:
-        print(f"ERROR: No se encontró el {P_SELECTOR}", file=sys.stderr)
-        sys.exit(2)
+# 5. Example: Error if there is more than one li
+if li_count > 1:
+    print("⚠️ ¡Hay más de un elemento <li> en el primer nivel del <ul> después de ylaun!")
+    exit(1)
+else:
+    print("✅ Sólo hay un elemento <li> en el primer nivel del <ul> después de ylaun.")
+    exit(0)
 
-    # 3) Normalize both expected and current
-    current = normalize(p.get_text(separator=" ", strip=True))
-    expected = normalize(EXPECTED_TEXT)
-
-    # 4) Compare
-    if current != expected:
-        print("⚠️ ¡El contenido ha cambiado! Aquí está el diff:\n")
-        diff = difflib.unified_diff(
-            expected.split(),
-            current.split(),
-            fromfile="expected",
-            tofile="current",
-            lineterm=""
-        )
-        for line in diff:
-            print(line)
-        sys.exit(1)
-
-    print("✅ El párrafo coincide exactamente.")
-    sys.exit(0)
-
-if __name__ == "__main__":
-    main()
