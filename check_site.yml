@@ -25,7 +25,7 @@ jobs:
         run: |
           pip install requests beautifulsoup4
 
-      - name: Run site-check script
+      - name: Run SiteCheck script
         id: check
         run: |
           if python SiteCheck.py; then
