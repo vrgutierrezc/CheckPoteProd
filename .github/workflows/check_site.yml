@@ -25,7 +25,7 @@ jobs:
 
       - name: Run paragraph check
         id: check
-        run: python check_site.py
+        run: python Site_Check.py
         continue-on-error: true
 
       - name: Notify on change
