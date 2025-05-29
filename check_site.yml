@@ -28,7 +28,7 @@ jobs:
       - name: Run site-check script
         id: check
         run: |
-          if python check_site.py; then
+          if python SiteCheck.py; then
             echo "changed=false" >> $GITHUB_OUTPUT
           else
             echo "changed=true"  >> $GITHUB_OUTPUT
