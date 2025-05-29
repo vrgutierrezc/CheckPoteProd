@@ -30,6 +30,10 @@ jobs:
           echo "exit_code=$?" >> $GITHUB_OUTPUT
         continue-on-error: true
 
+      - name: Debug exit code output
+        run: |
+          echo "Exit code was: ${{ steps.check.outputs.exit_code }}"
+
       - name: Notify on change
         if: steps.check.outputs.exit_code == '1'
         uses: dawidd6/action-send-mail@v3
