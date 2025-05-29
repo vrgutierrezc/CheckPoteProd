@@ -40,9 +40,9 @@ jobs:
           body:           |
             Hola,
 
-            Este es tu correo diario de confirmación: no se han detectado cambios
-            en el párrafo monitorizado del sitio del Ministerio de Minas y Energía 
-            en las últimas 24 horas.
+            Este es tu correo diario de confirmación: No se han detectado 
+            nuevas declaraciones de gas en el sitio del Ministerio de Minas
+            y Energía en las últimas 24 horas.
 
             Saludos.
           from:           ${{ secrets.FROM_EMAIL }}
