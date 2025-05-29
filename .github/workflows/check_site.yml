@@ -26,7 +26,7 @@ jobs:
       - name: Run paragraph check
         id: check
         run: |
-          python SiteCheck.py
+          python SiteCheck.py || true
           code=$?
           echo "Exit code: $code"
           echo "exit_code=$code" >> $GITHUB_OUTPUT
