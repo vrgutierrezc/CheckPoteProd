@@ -27,7 +27,9 @@ jobs:
         id: check
         run: |
           python SiteCheck.py
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          code=$?
+          echo "Exit code: $code"
+          echo "exit_code=$code" >> $GITHUB_OUTPUT
         continue-on-error: true
 
       - name: Debug exit code output
