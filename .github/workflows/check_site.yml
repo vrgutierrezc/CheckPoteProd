@@ -51,4 +51,18 @@ jobs:
           to:             ${{ secrets.NOTIFY_EMAIL }}
           bcc:            ${{ secrets.BCC_EMAILS }}
           from:           ${{ secrets.FROM_EMAIL }}
-
+      
+      - name: Notify if website is down
+        if: steps.check.outputs.exit_code == '3'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port:    ${{ secrets.SMTP_PORT }}
+          username:       ${{ secrets.SMTP_USERNAME }}
+          password:       ${{ secrets.SMTP_PASSWORD }}
+          subject:        "🚨 ALERTA: No se puede acceder a la página de Minenergía"
+          body:           |
+            El monitoreo automático de la página https://www.minenergia.gov.co/es/misional/hidrocarburos/funcionamiento-del-sector/gas-natural/ no pudo conectarse ni descargar el contenido en el último intento (la página podría estar caída o fuera de servicio).
+          to:             ${{ secrets.NOTIFY_EMAIL }}
+          bcc:            ${{ secrets.BCC_EMAILS }}
+          from:           ${{ secrets.FROM_EMAIL }}
